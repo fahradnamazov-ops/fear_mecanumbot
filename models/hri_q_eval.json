@@ -1,0 +1,11 @@
+{
+  "episodes": 80,
+  "delivery_rate": 1.0,
+  "avg_return": 65.71626155994603,
+  "avg_collisions": 0.0,
+  "avg_steps": 34.0,
+  "freeze": 0,
+  "avoid": 640,
+  "catch_attention": 0,
+  "task": 2080
+}
