@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Launch MuJoCo truth twin with fear_hri scenario (run from ROS workspace root).
-# Requires: mecanumbot built, scenario copied or path passed.
+# Launch MuJoCo truth twin with the Fear HRI scenario.
+# Run from a built ROS 2 workspace that includes mecanumbot_bringup and mecanumbot_sim.
+# Ensure fear_hri_brick_carry.yaml is installed under sim_scenarios (see docs/INTEGRATION.md).
 
 set -euo pipefail
 WORKSPACE="${WORKSPACE:-$(pwd)}"

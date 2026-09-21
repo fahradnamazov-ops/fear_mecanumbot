@@ -1,4 +1,8 @@
-"""Fear HRI V1 helpers (Fahrad Namazov)."""
+"""Fear HRI V1 package for the Mecanumbot project.
+
+Provides continuous fear dynamics, proximity risk, reward terms,
+a Gymnasium brick-carry environment, and tabular Q-learning utilities.
+"""
 
 from fear_mecanumbot.constants import ACTION_NAMES
 from fear_mecanumbot.fear_dynamics import FearState, update_fear_level
@@ -23,3 +27,5 @@ __all__ = [
     "action_name",
     "load_default_agent",
 ]
+
+__version__ = "1.0.0"

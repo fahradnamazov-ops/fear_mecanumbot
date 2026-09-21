@@ -1,4 +1,4 @@
-"""Range sensing helpers: local geometry now, ROS scan + people fusion on robot."""
+"""Range sensing utilities for local geometry and ROS LaserScan fusion."""
 
 from __future__ import annotations
 

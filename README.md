@@ -1,19 +1,69 @@
-# fear_mecanumbot
+# Fear HRI for Mecanumbot
 
-Fear HRI V1 helpers for Mecanumbot.
+**Author:** Fahrad Namazov  
+**Affiliation:** MicroLab · Mecanumbot project  
+**Repository:** https://github.com/fahradnamazov-ops/fear_mecanumbot  
 
-Author: Fahrad Namazov
+Python package for a biologically motivated **fear** state in human–robot interaction (HRI). The robot maintains a continuous internal `fear_level` driven by proximity risk, learns discrete defensive and task actions with tabular Q-learning, and exposes draft ROS 2 / simulation artefacts for integration with the Mecanumbot stack.
 
-Teammate repos: pull + personal branch + PR only.
+---
+
+## Research question
+
+Can a continuous internal fear variable produce **residual caution** after a nearby person steps away—behaviour that persists longer than proximity-only safety rules?
+
+## Scope (V1)
+
+| Element | Specification |
+|---------|----------------|
+| Scenario | Brick-carry task with a person nearby |
+| Trigger | Minimum range and closing speed (LIDAR-style risk); near-collision spike at ≤ 0.25 m. Not IMU pickup. |
+| State | Continuous `fear_level` ∈ [0, 100] with slow decay |
+| Actions | `freeze`, `avoid` (Nav2 Approach retreat), `catch_attention`, `task` |
+| Policy | Tabular Q-learning on a local 2D Gymnasium environment |
+| Out of scope (V1) | LED signalling; ethologist evaluation; merged PRs into team repositories |
+
+## Features
+
+- Risk mapping from range and closing speed (`risk.py`)
+- Fear dynamics with spike, rise, and decay (`fear_dynamics.py`)
+- Structured reward terms for near-collision, fear cost, and task progress (`reward.py`)
+- `HriFearEnv` Gymnasium environment and Q-learning agent
+- Residual-caution demonstration versus proximity-only speed
+- Draft ROS 2 behaviour package (`ros_draft/`) and MuJoCo scenario YAML (`sim_draft/`)
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [docs/TECHNICAL_REPORT.md](docs/TECHNICAL_REPORT.md) | Full method, parameters, results, biology mapping, limitations |
+| [docs/INTEGRATION.md](docs/INTEGRATION.md) | Local vs ROS sensing, team repositories, launch and copy steps |
+
+## Repository layout
+
+```text
+fear_mecanumbot/          Core Python package
+tests/                    Unit tests (pytest)
+scripts/                  Demos and training utilities
+models/                   Trained Q-table artefacts
+ros_draft/                Draft ROS 2 Fear HRI behaviour package
+sim_draft/                Draft simulation scenario (sim_human_0 patrol)
+docs/                     Technical report and integration guide
+```
+
+## Requirements
+
+- Python 3.10+ recommended
+- Dependencies listed in `requirements.txt` (`gymnasium`, `numpy`, `pytest`)
 
 ## Setup
 
-**Important:** install deps **inside this repo** (`pip install -r requirements.txt`).  
-A separate `(fear_rl)` env is not enough — pytest lives here.
+Install dependencies **inside this repository**. A separate Conda or venv used only for other Mecanumbot packages is not sufficient if `pytest` is missing here.
 
 ### Windows
 
 ```bat
+cd fear_mecanumbot
 python -m venv .venv
 .venv\Scripts\activate.bat
 pip install -r requirements.txt
@@ -21,7 +71,7 @@ python scripts\check_setup.py
 pytest -v
 ```
 
-### Linux
+### Linux / macOS
 
 ```bash
 cd fear_mecanumbot
@@ -30,31 +80,44 @@ source .venv/bin/activate
 pip install -r requirements.txt
 python scripts/check_setup.py
 python -m pytest -q
-python scripts/residual_fear_demo.py
-python scripts/v1_final_demo.py
 ```
 
-## Local vs robot
+## Running demos
 
-Local scripts use a **2D simulated person path** (geometry → min_range).  
-On robot/sim: `/scan` + optional `people_fusion` — see `notes/LOCAL_VS_ROS.md`.
+```bash
+# Residual caution (fear-modulated speed vs proximity-only)
+python scripts/residual_fear_demo.py
 
-## Layout
+# Full V1 summary: tests + residual gap + Q vs heuristic episode
+python scripts/v1_final_demo.py
 
-| Path | Role |
-|------|------|
-| `fear_mecanumbot/` | risk, fear, reward, env, Q-learning, BT stubs |
-| `ros_draft/` | Fear HRI behaviours package (for team integration) |
-| `sim_draft/` | MuJoCo scenario YAML (for team integration) |
-| `models/` | Q-table after train |
-| `tests/` | unit tests |
-| `scripts/` | demos |
-| `notes/` | report, scope, status |
+# Train / evaluate tabular Q-learning
+python scripts/train_hri_rl.py
+python scripts/run_hri_rl.py
 
-## V1
+# Preview fear update from scan-style range sequences
+python scripts/scan_fear_preview.py
+```
 
-- Bricks to goal, person nearby (LIDAR risk)
-- Continuous `fear_level`, slow decay
-- Actions: freeze, avoid (Nav2 retreat), catch_attention, task
+Results from `v1_final_demo.py` are written to `output/v1_summary.json` (gitignored).
 
-Repo: https://github.com/fahradnamazov-ops/fear_mecanumbot
+## Local simulation versus robot / MuJoCo
+
+Local scripts use a **2D geometric person path** to compute minimum range. They do not parse live `sensor_msgs/LaserScan` messages.
+
+On the robot or truth-twin simulation, range should come from `/mecanumbot/scan`, with optional pose fusion when the person leaves the LIDAR field of view. See [docs/INTEGRATION.md](docs/INTEGRATION.md).
+
+## Team repositories (read-only from this project)
+
+Integration drafts in this repository are intended to be **copied** into the team stack when maintainers request it. This project does not modify teammate `main` branches directly.
+
+| Component | Repository |
+|-----------|------------|
+| Simulation package | [Fortuz/mecanumbot_remote](https://github.com/Fortuz/mecanumbot_remote) (`mecanumbot_sim`) |
+| Behaviour trees | [hubaycsenge/mecanumbot_behaviours](https://github.com/hubaycsenge/mecanumbot_behaviours) |
+| Sensor processing | [hubaycsenge/mecanumbot_sensorprocess_smart](https://github.com/hubaycsenge/mecanumbot_sensorprocess_smart) |
+| Onboard robot packages | [Fortuz/mecanumbot](https://github.com/Fortuz/mecanumbot) |
+
+## Licence and contribution
+
+Work produced for the MicroLab Mecanumbot Fear HRI track. Prefer personal branches and pull requests when contributing to shared team repositories.

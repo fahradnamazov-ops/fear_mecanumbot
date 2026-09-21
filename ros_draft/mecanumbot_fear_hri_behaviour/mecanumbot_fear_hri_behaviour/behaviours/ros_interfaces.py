@@ -1,4 +1,4 @@
-"""ROS helpers for Fear HRI."""
+"""ROS interface adapters for Fear HRI behaviour nodes."""
 
 from __future__ import annotations
 
