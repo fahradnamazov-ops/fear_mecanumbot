@@ -24,7 +24,8 @@ def test_sim_scenario_matches_team_format():
     assert "sim_human_0" in text
     assert "mode: patrol" in text
     assert "fear_hri_brick_carry" in text
-    assert text.count("waypoints:") == 1
+    assert "waypoints:" in text
+    assert "brick_a" in text or "sim_cube_0" in text
 
 
 def test_ros_draft_has_package_xml():

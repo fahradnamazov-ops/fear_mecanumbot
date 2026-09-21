@@ -1,19 +1,47 @@
-# Simulation scenario draft
+# Simulation scenario draft (synced with Fortuz/mecanumbot_remote)
 
-## File
-
-`fear_hri_brick_carry.yaml` — person actor on `sim_human_0` with patrol motion near the robot work area.
-
-## Destination
-
-Copy into the team simulation package:
+`fear_hri_brick_carry.yaml` matches the scenario shipped in:
 
 ```text
-Fortuz/mecanumbot_remote → mecanumbot_sim/config/sim_scenarios/fear_hri_brick_carry.yaml
+mecanumbot_remote/mecanumbot_sim/config/sim_scenarios/fear_hri_brick_carry.yaml
 ```
 
-The YAML follows the same actor schema as existing team scenarios (for example `moving_human_patrol.yaml`). It configures the scenario only; it does not embed simulation engine code.
+It places the exercising person on `sim_human_0` between start and goal brick areas so residual fear can be exercised without hardware.
 
-## Usage
+## Activate fear in simulation
 
-See the parent repository document `docs/INTEGRATION.md` for launch commands and verification steps.
+Terminal 1 — MuJoCo truth twin with the Fear scene (no other BT):
+
+```bash
+ros2 launch mecanumbot_bringup sim.launch.py \
+  mode:=behaviour \
+  condition:=none \
+  scenario:=fear_hri_brick_carry
+```
+
+Gazebo backend:
+
+```bash
+ros2 launch mecanumbot_bringup sim.launch.py \
+  backend:=gazebo \
+  mode:=behaviour \
+  condition:=none \
+  scenario:=fear_hri_brick_carry
+```
+
+Terminal 2 — Fear HRI tree (after building `mecanumbot_fear_hri_behaviour`):
+
+```bash
+ros2 launch mecanumbot_fear_hri_behaviour launch_fear_hri.launch.py
+```
+
+Expect log lines: `fear=… risk=… range=… action=…`
+
+## Offline check (no ROS)
+
+From `fear_mecanumbot`:
+
+```bash
+pip install pyyaml
+python scripts/sim_fear_activate_demo.py
+```

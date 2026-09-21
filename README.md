@@ -101,11 +101,16 @@ python scripts/scan_fear_preview.py
 
 Results from `v1_final_demo.py` are written to `output/v1_summary.json` (gitignored).
 
-## Local simulation versus robot / MuJoCo
+## Activate fear in simulation
 
-Local scripts use a **2D geometric person path** to compute minimum range. They do not parse live `sensor_msgs/LaserScan` messages.
+Offline (this PC, no ROS):
 
-On the robot or truth-twin simulation, range should come from `/mecanumbot/scan`, with optional pose fusion when the person leaves the LIDAR field of view. See [docs/INTEGRATION.md](docs/INTEGRATION.md).
+```bash
+python scripts/sim_fear_activate_demo.py
+```
+
+Full MuJoCo / Gazebo (ROS 2 Humble lab machine): see [docs/INTEGRATION.md](docs/INTEGRATION.md).
+
 
 ## Team repositories (read-only from this project)
 

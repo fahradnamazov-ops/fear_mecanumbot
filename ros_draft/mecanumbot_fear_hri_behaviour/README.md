@@ -1,34 +1,33 @@
 # mecanumbot_fear_hri_behaviour
 
-Draft ROS 2 package for the Mecanumbot **Fear HRI** experiment. It is developed in this repository and intended to be copied into the team `mecanumbot_behaviours` workspace when maintainers integrate the feature.
+ROS 2 package that activates Fear HRI on Mecanumbot simulation or hardware.
 
-## Purpose
+## What it does
 
-1. Subscribe to `/mecanumbot/scan` (and related interfaces as wired in the draft).
-2. Maintain a continuous `fear_level` on the behaviour-tree blackboard.
-3. Select among `freeze`, `avoid`, `catch_attention`, and `task`.
-4. Execute avoid as a Nav2 Approach retreat when connected to the movement stack.
+1. Subscribes to LaserScan (`scan` / `/mecanumbot/scan`).
+2. Updates continuous `fear_level` (spike, rise, slow decay).
+3. Selects `freeze` / `avoid` / `catch_attention` / `task`.
+4. Publishes `/cmd_vel` (stop, reverse, attention yaw) and logs fear each tick.
 
-## Package layout
+## Run with the Fear sim scene
 
-```text
-config/fear_hri_constants.yaml     Thresholds and node parameters
-launch/launch_fear_hri.launch.py   Launch entry point
-mecanumbot_fear_hri_behaviour/
-  behaviours/                      Fear update, actions, ROS interfaces
-  tree_nodes/                      Tree assembly helpers
+```bash
+# terminal 1
+ros2 launch mecanumbot_bringup sim.launch.py \
+  mode:=behaviour condition:=none scenario:=fear_hri_brick_carry
+
+# terminal 2
+ros2 launch mecanumbot_fear_hri_behaviour launch_fear_hri.launch.py
 ```
 
-## Build (in a ROS 2 Humble workspace)
+Expect logs: `fear=… risk=… range=… action=…`
 
-Place this package under `src/`, install dependencies used by the Mecanumbot behaviours stack, then:
+## Build
 
 ```bash
 colcon build --packages-select mecanumbot_fear_hri_behaviour
 source install/setup.bash
-ros2 launch mecanumbot_fear_hri_behaviour launch_fear_hri.launch.py
 ```
 
-## Status
-
-This is an **integration draft**. Full closed-loop validation requires the team simulation (`mecanumbot_sim` under `mecanumbot_remote`) and existing movement / BT configuration packages. See `docs/INTEGRATION.md` in the parent repository.
+Branch: `fahrad/fear_hri_behaviour` on `mecanumbot_behaviours`.  
+Canonical draft also lives in `fear_mecanumbot/ros_draft/`.
