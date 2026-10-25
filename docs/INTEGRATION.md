@@ -22,7 +22,7 @@ Both **MuJoCo** and **Gazebo** backends live under `mecanumbot_remote` and expos
 | Mode | What drives range |
 |------|-------------------|
 | Offline demo | Scenario waypoints → Euclidean range (`scripts/sim_fear_activate_demo.py`) |
-| Unit tests / Q-learning | 2D geometric person in `HriFearEnv` |
+| Unit tests / Double DQN | 2D geometric person in `HriFearEnv` |
 | MuJoCo / Gazebo | `/mecanumbot/scan` LaserScan |
 
 ---
@@ -78,19 +78,35 @@ Replays `fear_hri_brick_carry` person patrol against a robot on the carry line a
 
 ---
 
-## 5. Behaviour tree (activation V1)
+## 5. Behaviour tree (activation V1 — Csenge stack)
 
 ```text
 ROOT
 ├── LoadFearParams
 └── FearLoop
-    ├── UpdateFearFromScan
-    ├── SelectFearAction
+    ├── UpdateFearFromScan      # /mecanumbot/scan → risk → fear_level (slow decay)
+    ├── SelectFearAction        # Double DQN (RL); task_middle only if weights missing
     ├── LogFearState
-    └── ExecuteSelectedAction   # freeze / reverse avoid / yaw cue via /cmd_vel
+    └── ExecuteSelectedAction
+        ├── freeze              # stop
+        ├── avoid               # Nav2 Approach retreat (fear-scaled distance)
+        ├── catch_attention     # IRL-only (Csenge); masked off in sim
+        └── task_*              # brick-carry + learned route (middle/north/south)
 ```
 
 Each tick logs fear. Actions return SUCCESS so the loop does not stall.
+
+**Csenge requirements reflected here**
+
+| Requirement | How we meet it |
+|-------------|----------------|
+| Activate fear in simulation | Fear BT reads live `/mecanumbot/scan` from MuJoCo |
+| Use `mecanumbot_remote` sim | `scenario:=fear_hri_brick_carry` via `sim.launch.py` |
+| Team BT / movement stack | `mecanumbot_fear_hri_behaviour` + `Nav2PoseNavigator` / nav_shim |
+| Avoid = Nav2 Approach retreat | Fear-scaled retreat pose → `navigate_to_pose` |
+| RL selects defensive vs task + route | Trained `models/hri_dqn.npz` (Double DQN) |
+| Residual caution | Slow fear decay + task speed × (1 − 0.55·fear/100) |
+| No IMU pickup as V1 trigger | LIDAR range + closing speed only |
 
 ---
 

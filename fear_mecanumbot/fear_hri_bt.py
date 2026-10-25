@@ -27,7 +27,7 @@ class Blackboard:
     goal_pose: tuple[float, float] | None = None
     robot_pose: tuple[float, float, float] | None = None
     person_pose: tuple[float, float] | None = None
-    selected_action: str = "task"
+    selected_action: str = "task_middle"
     cmd_vel: tuple[float, float, float] = (0.0, 0.0, 0.0)
     catch_attention_active: bool = False
     nav_goal: tuple[float, float] | None = None
@@ -144,20 +144,24 @@ def select_action_from_fear(bb: Blackboard) -> str:
         return ACTION_NAMES[1]
     if 25.0 <= bb.fear_level < 40.0:
         return ACTION_NAMES[2]
-    return ACTION_NAMES[3]
+    return ACTION_NAMES[3]  # task_middle
 
 
 def tick_fear_hri_policy(bb: Blackboard, action: str | None = None) -> Status:
     chosen = action if action is not None else select_action_from_fear(bb)
+    task_leaf = TaskGoToBrickLeaf() if not bb.has_brick else TaskGoToGoalLeaf()
     leaves: dict[str, Leaf] = {
         "freeze": FreezeLeaf(),
         "avoid": AvoidLeaf(),
         "catch_attention": CatchAttentionLeaf(),
-        "task": TaskGoToBrickLeaf() if not bb.has_brick else TaskGoToGoalLeaf(),
+        "task": task_leaf,
+        "task_middle": task_leaf,
+        "task_north": task_leaf,
+        "task_south": task_leaf,
         "go_to_brick": TaskGoToBrickLeaf(),
         "go_to_goal": TaskGoToGoalLeaf(),
     }
-    leaf = leaves.get(chosen, leaves["task"])
+    leaf = leaves.get(chosen, leaves["task_middle"])
     return leaf.tick(bb)
 
 

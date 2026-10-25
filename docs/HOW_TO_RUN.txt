@@ -1,0 +1,23 @@
+Fear HRI — How to run (professor / reviewer)
+
+1) Offline (any PC with Python 3.10+)
+   cd fear_mecanumbot
+   python -m venv .venv
+   # activate .venv
+   pip install -r requirements.txt
+   pytest -q
+   python scripts/validate_dqn.py
+   python scripts/validate_route_cost.py
+   python scripts/v1_final_demo.py
+
+2) Live MuJoCo (ROS 2 Humble + WSL lab machine)
+   export FEAR_DQN_MODEL=.../fear_mecanumbot/models/hri_dqn.npz
+   bash scripts/wsl_clean_brick_sim.sh
+   # Success logs: Fear action policy: dqn
+   #               ALL BRICKS DONE — delivered 4
+
+3) End-to-end check script
+   bash scripts/wsl_e2e_dqn.sh
+
+Weights: models/hri_dqn.npz
+Eval JSON: models/hri_dqn_eval.json

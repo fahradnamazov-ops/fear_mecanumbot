@@ -52,7 +52,7 @@ def test_selector_freeze_when_fear_high():
 
 def test_selector_task_when_calm():
     bb = Blackboard(fear_level=0.0, risk=0.0, min_lidar_range=3.0)
-    assert select_action_from_fear(bb) == "task"
+    assert select_action_from_fear(bb) == "task_middle"
 
 
 def test_policy_tick_runs():
@@ -64,6 +64,9 @@ def test_policy_tick_runs():
         "avoid",
         "catch_attention",
         "task",
+        "task_middle",
+        "task_north",
+        "task_south",
         "go_to_brick",
         "go_to_goal",
     }

@@ -4,7 +4,7 @@
 **Affiliation:** MicroLab · Mecanumbot project  
 **Repository:** https://github.com/fahradnamazov-ops/fear_mecanumbot  
 
-Python package for a biologically motivated **fear** state in human–robot interaction (HRI). The robot maintains a continuous internal `fear_level` driven by proximity risk, learns discrete defensive and task actions with tabular Q-learning, and exposes draft ROS 2 / simulation artefacts for integration with the Mecanumbot stack.
+Python package for a biologically motivated **fear** state in human–robot interaction (HRI). The robot maintains a continuous internal `fear_level` driven by proximity risk, learns discrete defensive and task actions with **Double DQN**, and exposes draft ROS 2 / simulation artefacts for integration with the Mecanumbot stack.
 
 ---
 
@@ -20,7 +20,7 @@ Can a continuous internal fear variable produce **residual caution** after a nea
 | Trigger | Minimum range and closing speed (LIDAR-style risk); near-collision spike at ≤ 0.25 m. Not IMU pickup. |
 | State | Continuous `fear_level` ∈ [0, 100] with slow decay |
 | Actions | `freeze`, `avoid` (Nav2 Approach retreat), `catch_attention`, `task` |
-| Policy | Tabular Q-learning on a local 2D Gymnasium environment |
+| Policy | Double DQN (numpy MLP) on a local 2D Gymnasium environment |
 | Out of scope (V1) | LED signalling; ethologist evaluation; merged PRs into team repositories |
 
 ## Features
@@ -28,7 +28,7 @@ Can a continuous internal fear variable produce **residual caution** after a nea
 - Risk mapping from range and closing speed (`risk.py`)
 - Fear dynamics with spike, rise, and decay (`fear_dynamics.py`)
 - Structured reward terms for near-collision, fear cost, and task progress (`reward.py`)
-- `HriFearEnv` Gymnasium environment and Q-learning agent
+- `HriFearEnv` Gymnasium environment and Double DQN agent (`models/hri_dqn.npz`)
 - Residual-caution demonstration versus proximity-only speed
 - Draft ROS 2 behaviour package (`ros_draft/`) and MuJoCo scenario YAML (`sim_draft/`)
 
@@ -36,8 +36,11 @@ Can a continuous internal fear variable produce **residual caution** after a nea
 
 | Document | Description |
 |----------|-------------|
+| [docs/PROFESSOR_SUBMISSION.md](docs/PROFESSOR_SUBMISSION.md) | Concise supervisor handoff (results + how to run) |
 | [docs/TECHNICAL_REPORT.md](docs/TECHNICAL_REPORT.md) | Full method, parameters, results, biology mapping, limitations |
 | [docs/INTEGRATION.md](docs/INTEGRATION.md) | Local vs ROS sensing, team repositories, launch and copy steps |
+| [docs/HOW_TO_RUN.txt](docs/HOW_TO_RUN.txt) | Short reproduce checklist |
+| [docs/EMAIL_DRAFT.txt](docs/EMAIL_DRAFT.txt) | Suggested email to supervisor |
 
 ## Repository layout
 
@@ -88,11 +91,12 @@ python -m pytest -q
 # Residual caution (fear-modulated speed vs proximity-only)
 python scripts/residual_fear_demo.py
 
-# Full V1 summary: tests + residual gap + Q vs heuristic episode
+# Full V1 summary: tests + residual gap + Double DQN vs heuristic episode
 python scripts/v1_final_demo.py
 
-# Train / evaluate tabular Q-learning
+# Train / evaluate Double DQN
 python scripts/train_hri_rl.py
+python scripts/validate_dqn.py
 python scripts/run_hri_rl.py
 
 # Preview fear update from scan-style range sequences

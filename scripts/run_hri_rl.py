@@ -1,8 +1,8 @@
 r"""
-Run a trained Q policy (or heuristic if no model).
+Run a trained Double DQN policy (or heuristic if no model).
 
-  python scripts\train_hri_rl.py
-  python scripts\run_hri_rl.py
+  python scripts/train_hri_rl.py
+  python scripts/run_hri_rl.py
 """
 
 from __future__ import annotations
@@ -15,8 +15,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from fear_mecanumbot.constants import ACTION_NAMES
+from fear_mecanumbot.dqn import DQNAgent, features_from_info
 from fear_mecanumbot.env import HriFearEnv
-from fear_mecanumbot.qlearn import QAgent, discretize
 from fear_mecanumbot.scenario import heuristic_action
 
 
@@ -65,24 +65,24 @@ def print_log(title: str, log: list[dict]) -> None:
 
 
 def main() -> None:
-    q_path = ROOT / "models" / "hri_q.npy"
+    dqn_path = ROOT / "models" / "hri_dqn.npz"
     heuristic_log = run_policy(
         "heuristic",
         lambda obs, info: heuristic_action(info["fear_level"], info["min_range"], info["risk"]),
     )
     print_log("heuristic", heuristic_log)
 
-    if not q_path.exists():
-        print(f"\nNo model at {q_path}. Train first: python scripts\\train_hri_rl.py")
+    if not dqn_path.exists():
+        print(f"\nNo model at {dqn_path}. Train first: python scripts/train_hri_rl.py")
         return
 
-    agent = QAgent.load(q_path)
+    agent = DQNAgent.load(dqn_path)
 
     def greedy(_obs, info):
-        return agent.act(discretize(_obs, info), epsilon=0.0)
+        return agent.act(features_from_info(_obs, info), epsilon=0.0, mask_catch=True)
 
-    rl_log = run_policy("q-learning", greedy)
-    print_log("Q-learning (greedy)", rl_log)
+    rl_log = run_policy("double-dqn", greedy)
+    print_log("Double DQN (greedy)", rl_log)
 
     out_dir = ROOT / "output"
     out_dir.mkdir(exist_ok=True)
@@ -92,6 +92,8 @@ def main() -> None:
         writer.writeheader()
         writer.writerows(rl_log)
     print(f"\nCSV: {out}")
+    if not rl_log[-1]["delivered"]:
+        raise SystemExit("FAIL: Double DQN demo did not deliver")
 
 
 if __name__ == "__main__":

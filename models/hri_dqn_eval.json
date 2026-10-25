@@ -1,0 +1,14 @@
+{
+  "delivery_rate": 1.0,
+  "avg_return": 52.767141773262765,
+  "avg_collisions": 0.0,
+  "avg_steps": 12.11,
+  "freeze": 0,
+  "avoid": 0,
+  "catch_attention": 0,
+  "task_middle": 698,
+  "task_north": 513,
+  "task_south": 0,
+  "task": 1211,
+  "policy": "dqn"
+}

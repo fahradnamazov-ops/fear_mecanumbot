@@ -1,12 +1,17 @@
 """Tests for scenario helpers and heuristic baseline."""
 
 from fear_mecanumbot.constants import ACTION_CATCH_ATTENTION, ACTION_FREEZE
-from fear_mecanumbot.scenario import heuristic_action, person_path
+from fear_mecanumbot.scenario import person_path, heuristic_action
 
 
-def test_person_approaches_then_leaves():
-    assert person_path(0)[0] > person_path(20)[0]
-    assert person_path(80)[0] > person_path(50)[0]
+def test_person_blocks_then_clears_corridor():
+    # On-mat block phase stays near corridor centre
+    assert abs(person_path(5)[0]) < 0.25
+    # Clear window moves north-east past the green box
+    assert person_path(60)[0] > 0.8
+    assert person_path(60)[1] > 0.5
+    # Loop returns toward the mat
+    assert abs(person_path(74)[0]) < 0.6
 
 
 def test_high_fear_near_person_selects_freeze():

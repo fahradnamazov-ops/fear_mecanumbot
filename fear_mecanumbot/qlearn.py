@@ -1,4 +1,4 @@
-"""Tabular Q-learning for HriFearEnv."""
+"""Tabular Q-learning for HriFearEnv — includes learned route actions."""
 
 from __future__ import annotations
 
@@ -6,21 +6,33 @@ from pathlib import Path
 
 import numpy as np
 
-from fear_mecanumbot.constants import FEAR_MAX, N_ACTIONS, SAFE_DISTANCE_M
+from fear_mecanumbot.constants import (
+    ACTION_NAMES,
+    FEAR_MAX,
+    N_ACTIONS,
+    SAFE_DISTANCE_M,
+    TASK_ACTIONS,
+)
 from fear_mecanumbot.env import HriFearEnv
+from fear_mecanumbot.scenario import person_lateral_bin
 
 
 def discretize(obs: np.ndarray, info: dict) -> int:
-    """fear(4) x range(4) x brick(2) x goal_near(2) = 64 states."""
+    """fear(4) x range(4) x brick(2) x goal_near(2) x person_lat(3) = 192 states."""
     fear = float(info.get("fear_level", obs[10] * FEAR_MAX))
     min_range = float(info.get("min_range", obs[11] * 4.0))
     has_brick = 1 if info.get("has_brick", obs[8] > 0.5) else 0
-    robot = (float(obs[0]) * 5.0, float(obs[1]) * 5.0)
-    brick = (float(obs[4]) * 5.0, float(obs[5]) * 5.0)
-    goal = (float(obs[6]) * 5.0, float(obs[7]) * 5.0)
-    target = goal if has_brick else brick
-    d_tgt = float(np.hypot(robot[0] - target[0], robot[1] - target[1]))
+    if "target_dist_m" in info:
+        d_tgt = float(info["target_dist_m"])
+    else:
+        robot = (float(obs[0]) * 3.5 - 1.7, float(obs[1]) * 3.5 - 1.4)
+        brick = (float(obs[4]) * 3.5 - 1.7, float(obs[5]) * 3.5 - 1.4)
+        goal = (float(obs[6]) * 3.5 - 1.7, float(obs[7]) * 3.5 - 1.4)
+        target = goal if has_brick else brick
+        d_tgt = float(np.hypot(robot[0] - target[0], robot[1] - target[1]))
     near_goal = 1 if d_tgt < 1.2 else 0
+    lat = int(info.get("person_lat", 1))
+    lat = max(0, min(2, lat))
 
     if fear < 15:
         fi = 0
@@ -40,10 +52,10 @@ def discretize(obs: np.ndarray, info: dict) -> int:
     else:
         ri = 3
 
-    return ((fi * 4 + ri) * 2 + has_brick) * 2 + near_goal
+    return (((fi * 4 + ri) * 2 + has_brick) * 2 + near_goal) * 3 + lat
 
 
-N_STATES = 64
+N_STATES = 192
 
 
 class QAgent:
@@ -81,15 +93,19 @@ class QAgent:
     def load(cls, path: str | Path, seed: int = 0) -> QAgent:
         agent = cls(seed=seed)
         agent.q = np.load(path)
+        if agent.q.shape != (N_STATES, N_ACTIONS):
+            raise ValueError(
+                "Q shape %s, expected (%d, %d)" % (agent.q.shape, N_STATES, N_ACTIONS)
+            )
         return agent
 
 
 def train(
-    episodes: int = 6000,
-    max_steps: int = 120,
+    episodes: int = 12000,
+    max_steps: int = 180,
     seed: int = 0,
     epsilon_start: float = 1.0,
-    epsilon_end: float = 0.08,
+    epsilon_end: float = 0.05,
 ) -> tuple[QAgent, list[float]]:
     env = HriFearEnv(max_steps=max_steps)
     agent = QAgent(seed=seed)
@@ -114,46 +130,41 @@ def train(
     return agent, returns
 
 
-def evaluate(agent: QAgent, episodes: int = 50, max_steps: int = 120, seed: int = 10_000) -> dict:
+def evaluate(
+    agent: QAgent,
+    episodes: int = 100,
+    max_steps: int = 180,
+    seed: int = 50_000,
+) -> dict:
     env = HriFearEnv(max_steps=max_steps)
     delivered = 0
-    collisions = 0
-    returns = []
-    freeze = avoid = catch = task = 0
-    steps_sum = 0
+    collisions = 0.0
+    steps_sum = 0.0
+    rets = 0.0
+    counts = {name: 0 for name in ACTION_NAMES.values()}
     for ep in range(episodes):
         obs, info = env.reset(seed=seed + ep)
         state = discretize(obs, info)
         total = 0.0
         for t in range(max_steps):
-            action = agent.act(state, epsilon=0.0)
-            if action == 0:
-                freeze += 1
-            elif action == 1:
-                avoid += 1
-            elif action == 2:
-                catch += 1
-            else:
-                task += 1
+            action = int(np.argmax(agent.q[state]))
+            counts[ACTION_NAMES[action]] = counts.get(ACTION_NAMES[action], 0) + 1
             obs, reward, terminated, truncated, info = env.step(action)
             total += reward
             state = discretize(obs, info)
             if terminated or truncated:
-                steps_sum += t + 1
-                if info["delivered"]:
-                    delivered += 1
-                collisions += info["near_collisions"]
                 break
-        returns.append(total)
-    n = max(1, episodes)
+        rets += total
+        steps_sum += info["step"]
+        collisions += info["near_collisions"]
+        if info["delivered"]:
+            delivered += 1
     return {
-        "episodes": episodes,
-        "delivery_rate": delivered / n,
-        "avg_return": float(np.mean(returns)),
-        "avg_collisions": collisions / n,
-        "avg_steps": steps_sum / n,
-        "freeze": freeze,
-        "avoid": avoid,
-        "catch_attention": catch,
-        "task": task,
+        "delivery_rate": delivered / episodes,
+        "avg_return": rets / episodes,
+        "avg_collisions": collisions / episodes,
+        "avg_steps": steps_sum / episodes,
+        **counts,
+        # Aggregate task routes for legacy readers
+        "task": sum(counts.get(ACTION_NAMES[a], 0) for a in TASK_ACTIONS),
     }

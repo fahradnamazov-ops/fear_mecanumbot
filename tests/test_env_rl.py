@@ -51,7 +51,7 @@ def test_q_update_changes_table():
 
 def test_short_train_runs():
     agent, returns = train(episodes=80, max_steps=50, seed=0)
-    assert agent.q.shape == (64, N_ACTIONS)
+    assert agent.q.shape == (192, N_ACTIONS)
     assert len(returns) == 80
     stats = evaluate(agent, episodes=8, max_steps=50, seed=100)
     assert 0.0 <= stats["delivery_rate"] <= 1.0

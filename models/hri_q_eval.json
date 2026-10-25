@@ -1,11 +1,13 @@
 {
-  "episodes": 80,
   "delivery_rate": 1.0,
-  "avg_return": 65.71626155994603,
+  "avg_return": 69.26130588649983,
   "avg_collisions": 0.0,
-  "avg_steps": 34.0,
+  "avg_steps": 14.29,
   "freeze": 0,
-  "avoid": 640,
+  "avoid": 0,
   "catch_attention": 0,
-  "task": 2080
+  "task_middle": 0,
+  "task_north": 929,
+  "task_south": 500,
+  "task": 1429
 }

@@ -1,4 +1,12 @@
-"""2D Fear HRI environment: freeze / avoid / catch_attention / task."""
+"""2D Fear HRI environment: freeze / avoid / catch_attention / task.
+
+Training layout matches MuJoCo fear_hri_brick_carry (corridor person + furniture).
+Contract taught to Q:
+  - task: complete pick/deliver (main objective)
+  - avoid: pause delivery, increase distance to person (not when far)
+  - freeze: only when very close
+  - catch_attention: light social cue (IRL); weak in this 2D trainer
+"""
 
 from __future__ import annotations
 
@@ -11,8 +19,13 @@ from fear_mecanumbot.constants import (
     ACTION_CATCH_ATTENTION,
     ACTION_FREEZE,
     ACTION_TASK,
+    ACTION_TASK_MIDDLE,
+    ACTION_TASK_NORTH,
+    ACTION_TASK_SOUTH,
     FEAR_MAX,
+    HIT_DISTANCE_M,
     N_ACTIONS,
+    REWARD_AVOID_CLEARED,
     REWARD_AVOID_FAR,
     REWARD_AVOID_NEAR,
     REWARD_CATCH_FAR,
@@ -21,12 +34,27 @@ from fear_mecanumbot.constants import (
     REWARD_FREEZE_FAR,
     REWARD_FREEZE_NEAR,
     REWARD_NEAR_COLLISION_PENALTY,
+    REWARD_OBSTACLE_HIT,
     REWARD_PICK,
     REWARD_STEP,
+    REWARD_STUCK,
     SAFE_DISTANCE_M,
+    TASK_ACTIONS,
 )
 from fear_mecanumbot.fear_dynamics import FearState, update_fear_level
-from fear_mecanumbot.scenario import ScenarioState, apply_action, dist, person_path, sense
+from fear_mecanumbot.route_cost import reward_from_completion_cost
+from fear_mecanumbot.scenario import (
+    BRICK_XY,
+    GOAL_XY,
+    START_XY,
+    ScenarioState,
+    apply_action,
+    dist,
+    person_blocks_middle,
+    person_lateral_bin,
+    person_path,
+    sense,
+)
 
 try:
     import gymnasium as gym
@@ -39,9 +67,9 @@ except ImportError:  # pragma: no cover
 def _make_state(
     *,
     closest: float = 0.22,
-    robot: tuple[float, float] = (0.35, 0.35),
-    brick: tuple[float, float] = (2.55, 0.55),
-    goal: tuple[float, float] = (0.45, 2.7),
+    robot: tuple[float, float] = START_XY,
+    brick: tuple[float, float] = BRICK_XY,
+    goal: tuple[float, float] = GOAL_XY,
 ) -> ScenarioState:
     person0 = person_path(0, closest=closest)
     return ScenarioState(
@@ -51,21 +79,24 @@ def _make_state(
         goal=goal,
         fear=FearState(level=0.0),
         prev_person=person0,
+        last_target_dist=dist(robot, brick),
     )
 
 
 def _obs_from(state: ScenarioState, min_range: float, risk: float) -> np.ndarray:
     assert state.fear is not None
+    # Normalise roughly to live arena extent (~±1.7)
+    s = 3.5
     return np.array(
         [
-            state.robot[0] / 5.0,
-            state.robot[1] / 5.0,
-            state.person[0] / 5.0,
-            state.person[1] / 5.0,
-            state.brick[0] / 5.0,
-            state.brick[1] / 5.0,
-            state.goal[0] / 5.0,
-            state.goal[1] / 5.0,
+            (state.robot[0] + 1.7) / s,
+            (state.robot[1] + 1.4) / s,
+            (state.person[0] + 1.7) / s,
+            (state.person[1] + 1.4) / s,
+            (state.brick[0] + 1.7) / s,
+            (state.brick[1] + 1.4) / s,
+            (state.goal[0] + 1.7) / s,
+            (state.goal[1] + 1.4) / s,
             1.0 if state.has_brick else 0.0,
             1.0 if state.delivered else 0.0,
             state.fear.level / FEAR_MAX,
@@ -79,7 +110,9 @@ def _obs_from(state: ScenarioState, min_range: float, risk: float) -> np.ndarray
 def _action_shaping(action: int, min_range: float, fear_level: float) -> float:
     near = min_range < SAFE_DISTANCE_M
     if action == ACTION_FREEZE:
-        return REWARD_FREEZE_NEAR if near else REWARD_FREEZE_FAR
+        if min_range <= HIT_DISTANCE_M + 0.15:
+            return REWARD_FREEZE_NEAR
+        return REWARD_FREEZE_FAR
     if action == ACTION_AVOID:
         return REWARD_AVOID_NEAR if near else REWARD_AVOID_FAR
     if action == ACTION_CATCH_ATTENTION:
@@ -94,7 +127,7 @@ class HriFearEnv:
 
     metadata = {"render_modes": []}
 
-    def __init__(self, max_steps: int = 120, closest: float = 0.22) -> None:
+    def __init__(self, max_steps: int = 160, closest: float = 0.22) -> None:
         self.max_steps = max_steps
         self.closest = closest
         self.state: ScenarioState | None = None
@@ -118,11 +151,17 @@ class HriFearEnv:
         if seed is not None:
             rng = np.random.default_rng(seed)
             closest = float(rng.uniform(0.18, 0.32))
+            # Small start jitter so policy is not brittle
+            robot = (
+                START_XY[0] + float(rng.uniform(-0.08, 0.08)),
+                START_XY[1] + float(rng.uniform(-0.15, 0.15)),
+            )
         else:
             closest = self.closest
+            robot = START_XY
         options = options or {}
         closest = float(options.get("closest", closest))
-        self.state = _make_state(closest=closest)
+        self.state = _make_state(closest=closest, robot=robot)
         self.closest = closest
         min_range, risk, _near = sense(self.state)
         self._last_min_range = min_range
@@ -133,13 +172,22 @@ class HriFearEnv:
         if self.state is None:
             raise RuntimeError("call reset() before step()")
         action = int(action)
-        if action not in (ACTION_FREEZE, ACTION_AVOID, ACTION_CATCH_ATTENTION, ACTION_TASK):
+        if action not in (
+            ACTION_FREEZE,
+            ACTION_AVOID,
+            ACTION_CATCH_ATTENTION,
+            ACTION_TASK_MIDDLE,
+            ACTION_TASK_NORTH,
+            ACTION_TASK_SOUTH,
+        ):
             raise ValueError(f"invalid action {action}")
 
         state = self.state
         assert state.fear is not None
         min_range, risk, near = sense(state)
         previous_fear = state.fear.level
+        prev_range = min_range
+        hits_before = state.obstacle_hits
         update_fear_level(state.fear, risk=risk, spike_event=near)
 
         target = state.goal if state.has_brick else state.brick
@@ -152,17 +200,37 @@ class HriFearEnv:
             state.near_collisions += 1
 
         reward = REWARD_STEP + _action_shaping(action, min_range, state.fear.level)
-        reward += 1.5 * (dist_before - dist_after)
+        # Task progress toward current target
+        if action in TASK_ACTIONS:
+            reward += 2.0 * (dist_before - dist_after)
+        # Csenge completion-time cost: travel + wait (long clear cheap, short blocked expensive)
+        cost_r, cost_info = reward_from_completion_cost(
+            action, state.robot, target, state.person
+        )
+        reward += cost_r
+        if action == ACTION_AVOID and min_after > prev_range + 0.02:
+            reward += REWARD_AVOID_CLEARED
         if just_picked:
             reward += REWARD_PICK
         if just_delivered:
             reward += REWARD_DELIVER
         if near:
             reward += REWARD_NEAR_COLLISION_PENALTY
+        if state.obstacle_hits > hits_before:
+            reward += REWARD_OBSTACLE_HIT
+        if state.no_progress_steps > 12 and action in TASK_ACTIONS:
+            reward += REWARD_STUCK
         if action != ACTION_FREEZE and min_range < SAFE_DISTANCE_M and state.fear.level > 0.0:
-            reward -= 0.008 * state.fear.level
+            reward -= 0.020 * state.fear.level
+        # Driving into human on any corridor is expensive
+        if action in TASK_ACTIONS and min_range < SAFE_DISTANCE_M:
+            reward -= 0.45 * ((SAFE_DISTANCE_M - min_range) / SAFE_DISTANCE_M)
+        if action == ACTION_AVOID and min_range < SAFE_DISTANCE_M:
+            reward += 0.22
         if state.fear.level < previous_fear:
             reward += 0.05
+        if action in TASK_ACTIONS and min_range > SAFE_DISTANCE_M:
+            reward += 0.08
 
         state.prev_person = state.person
         state.step += 1
@@ -174,7 +242,9 @@ class HriFearEnv:
         self._last_min_range = min_range
         self._last_risk = risk
         obs = _obs_from(state, min_range, risk)
-        return obs, float(reward), terminated, truncated, self._info(just_picked, just_delivered)
+        info = self._info(just_picked, just_delivered)
+        info.update(cost_info)
+        return obs, float(reward), terminated, truncated, info
 
     def _info(self, just_picked: bool, just_delivered: bool) -> dict[str, Any]:
         state = self.state
@@ -186,9 +256,15 @@ class HriFearEnv:
             "has_brick": bool(state.has_brick),
             "delivered": bool(state.delivered),
             "near_collisions": int(state.near_collisions),
+            "obstacle_hits": int(state.obstacle_hits),
             "just_picked": just_picked,
             "just_delivered": just_delivered,
             "step": int(state.step),
+            "target_dist_m": float(
+                dist(state.robot, state.goal if state.has_brick else state.brick)
+            ),
+            "person_lat": int(person_lateral_bin(state)),
+            "middle_blocked": bool(person_blocks_middle(state)),
         }
 
 

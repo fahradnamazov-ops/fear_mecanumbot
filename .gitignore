@@ -9,3 +9,8 @@ build/
 Thumbs.db
 *.log
 output/
+install/
+log/
+scripts/install/
+scripts/log/
+*.exe

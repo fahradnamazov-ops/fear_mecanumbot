@@ -3,14 +3,14 @@
 **Project:** Mecanumbot Fear Human–Robot Interaction  
 **Author:** Fahrad Namazov  
 **Supervisor:** Csenge Hubay  
-**Date:** September 2026  
+**Date:** October 2026 (V1.1)  
 **Code:** https://github.com/fahradnamazov-ops/fear_mecanumbot  
 
 ---
 
 ## 1. Abstract
 
-This work implements a continuous internal fear state for a mobile robot engaged in a brick-carry task near a moving person. Proximity risk derived from minimum range and closing speed drives `fear_level`. Near collisions produce large fear spikes; fear then decays slowly when the person moves away. A tabular Q-learning agent selects among four discrete actions—freeze, avoid, catch attention, and task execution—on a local two-dimensional Gymnasium environment. Evaluation shows a residual caution gap of approximately 0.47 relative to proximity-only speed modulation, perfect delivery rate under the learned policy in evaluation episodes, fewer steps than a fixed heuristic, and zero near collisions for the Q-learning policy in the reported trial. Draft ROS 2 behaviour and simulation scenario artefacts are included for later integration with the Mecanumbot software stack.
+This work implements a continuous internal fear state for a mobile robot engaged in a brick-carry task near a moving person. Proximity risk derived from minimum range and closing speed drives `fear_level`. Near collisions produce large fear spikes; fear then decays slowly when the person moves away. A **Double DQN** agent selects freeze, avoid, catch attention, and task corridors (`task_middle` / `task_north` / `task_south`) using **completion-time cost** (travel + wait) so the robot finishes ASAP while avoiding the human. Offline evaluation: delivery rate 1.00, zero mean near collisions. Live MuJoCo e2e: all four bricks delivered with `policy=rl_dqn`. `catch_attention` is IRL-only (masked in sim). Full method details follow; see also `docs/PROFESSOR_SUBMISSION.md`.
 
 ---
 
@@ -174,68 +174,57 @@ Supporting artefacts:
 
 ## 6. Results (local evaluation)
 
-Command:
+### 6.1 V1 residual-caution demo (Aug–Sep 2026)
 
-```bash
-python scripts/v1_final_demo.py
-```
-
-Representative summary (`output/v1_summary.json`, 30 August 2026 run):
+Command: `python scripts/v1_final_demo.py`
 
 | Metric | Value |
 |--------|-------|
-| Unit tests | 50 passed |
 | Residual gap (person far) | ≈ 0.47 |
-| Q-learning delivery rate (40 eval episodes) | 1.00 |
-| Mean Q episode length | ≈ 34 steps |
-| Heuristic episode length (example) | 85 steps |
-| Near collisions (Q policy, reported eval) | 0.0 mean |
-| Dominant Q actions (eval counts) | task ≫ avoid; freeze / catch_attention rare |
+| Early Q-learning delivery (historical) | 1.00 |
 
-Interpretation:
+### 6.2 V1.1 Double DQN + completion-time (5 Oct 2026)
 
-- Residual gap > 0 supports the claim that fear decays more slowly than pure proximity gating.
-- The learned policy completes delivery faster than the fixed heuristic in the reported comparison and avoids near collisions in evaluation.
-- Freeze and catch_attention appear infrequently when the policy successfully stays out of hit distance; that is consistent with shaping that rewards avoidance and task progress.
+| Metric | Value |
+|--------|-------|
+| Unit tests | 58 passed |
+| Double DQN delivery rate | **1.00** |
+| Mean near collisions | **0.00** |
+| Mean episode steps | ≈ 12.2 |
+| Eval actions | task_middle ≈ 708, task_north ≈ 514 |
+| Cost check | blocked middle expensive; clear middle cheapest |
+| Live MuJoCo e2e | **ALL BRICKS DONE (4/4)**, `policy=rl_dqn` |
+
+See `models/hri_dqn_eval.json` and `docs/PROFESSOR_SUBMISSION.md`.
 
 ---
 
 ## 7. Limitations
 
-1. **Not validated on the physical Jetson stack or full MuJoCo truth twin** with this fear tree in closed loop.
-2. **No merged pull request** into `mecanumbot_behaviours`, `mecanumbot_remote`, or `fear_RL` at the time of writing (access and ownership constraints).
-3. Local range is **geometric**, not a full LIDAR simulation.
-4. Ethologist review is **pending** and scheduled only when the team requests it.
-5. Tabular Q-learning is appropriate for V1 discreteness but is not a deep RL baseline.
+1. Ethologist review is **pending** until the team requests it.
+2. Physical Jetson / IRL `catch_attention` not demonstrated in this package (sim-masked by design).
+3. Local training range is **geometric**, not a full LIDAR simulation.
+4. Early person-relative corridor vias caused poor demos; fixed to **arena lanes** + wait-on-lane (Oct 2026).
 
 ---
 
 ## 8. Status relative to project track
 
-The local fear model, reward design, biological mapping, environment, and Q-learning policy constitute the completed Fear V1 software deliverable in this repository. Simulation and behaviour-tree integration remain available as drafts for team maintainers to copy into:
-
-- `Fortuz/mecanumbot_remote` → `mecanumbot_sim`
-- `hubaycsenge/mecanumbot_behaviours`
+**V1.1 deliverable complete** for supervisor review: fear dynamics, Double DQN, completion-time routes, MuJoCo Fear BT integration, tests, and documentation (`PROFESSOR_SUBMISSION.md`).
 
 ---
 
 ## 9. How to reproduce
 
 ```bash
-python -m venv .venv
-# activate venv
 pip install -r requirements.txt
-pytest -v
-python scripts/residual_fear_demo.py
+pytest -q
+python scripts/validate_dqn.py
+python scripts/validate_route_cost.py
 python scripts/v1_final_demo.py
 ```
 
-Optional retraining:
-
-```bash
-python scripts/train_hri_rl.py
-python scripts/run_hri_rl.py
-```
+Live: `bash scripts/wsl_e2e_dqn.sh` (ROS 2 Humble + MuJoCo lab setup).
 
 ---
 
@@ -244,3 +233,4 @@ python scripts/run_hri_rl.py
 | Version | Date | Notes |
 |---------|------|-------|
 | V1 | Aug–Sep 2026 | Local model, Q-learning, drafts, report consolidation |
+| V1.1 | Oct 2026 | Double DQN, completion-time routes, live MuJoCo 4/4, professor pack |

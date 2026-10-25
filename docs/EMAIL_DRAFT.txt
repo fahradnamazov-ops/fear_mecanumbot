@@ -1,0 +1,32 @@
+Subject: Fear HRI V1 submission — Fahrad Namazov (Mecanumbot)
+
+Dear Csenge,
+
+Please find my Fear HRI V1 submission for the Mecanumbot project.
+
+Summary
+- Continuous fear_level from proximity risk (LIDAR-style), with residual caution after the person leaves.
+- Double DQN selects freeze / avoid / catch_attention / task, and chooses middle / north / south from completion-time cost (travel + wait) so the robot finishes ASAP while avoiding the human.
+- Integrated on MuJoCo fear_hri_brick_carry via the Fear behaviour tree (catch_attention IRL-only).
+- Offline: 58 tests passed; DQN delivery_rate = 1.00, 0 collisions.
+- Live e2e: ALL BRICKS DONE (4/4) with policy=rl_dqn.
+
+Links / pack
+- Repo: https://github.com/fahradnamazov-ops/fear_mecanumbot
+- Submission folder: Desktop/FearHRI_Submission_Fahrad_20261005/
+- Zip: Desktop/FearHRI_Submission_Fahrad_20261005.zip
+- Demo video: FearHRI_DoubleDQN_demo_for_professor.mp4 (4/4 bricks; costs + fear overlay)
+- Main summary: docs/PROFESSOR_SUBMISSION.md
+- Full report: docs/TECHNICAL_REPORT.md
+- Integration: docs/INTEGRATION.md
+
+How to reproduce (short)
+  pytest -q
+  python scripts/validate_dqn.py
+  python scripts/validate_route_cost.py
+  bash scripts/wsl_e2e_dqn.sh   # live MuJoCo, if lab WSL/ROS is set up
+
+Happy to walk through a live MuJoCo demo in the lab or on a call.
+
+Best regards,
+Fahrad Namazov
