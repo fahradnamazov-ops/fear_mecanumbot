@@ -1,6 +1,6 @@
 # Integration Guide
 
-How Fear HRI connects to Mecanumbot simulation and behaviour trees, and how to **activate fear in the simulated environment** (Csenge’s requirement).
+How Fear HRI connects to the Mecanumbot simulation and behaviour trees.
 
 ---
 
@@ -11,7 +11,7 @@ How Fear HRI connects to Mecanumbot simulation and behaviour trees, and how to *
 | Simulation (MuJoCo + Gazebo) | [Fortuz/mecanumbot_remote](https://github.com/Fortuz/mecanumbot_remote) (`mecanumbot_sim`) | Publishes `scan`; hosts `fear_hri_brick_carry` |
 | Launch orchestration | `mecanumbot_bringup` (`sim.launch.py`) | Starts sim backends and modes |
 | Behaviour trees | [hubaycsenge/mecanumbot_behaviours](https://github.com/hubaycsenge/mecanumbot_behaviours) | Fear package on branch `fahrad/fear_hri_behaviour` |
-| Fear model + drafts | [fahradnamazov-ops/fear_mecanumbot](https://github.com/fahradnamazov-ops/fear_mecanumbot) | Dynamics, RL, `ros_draft/`, offline demo |
+| Fear model | [fahradnamazov-ops/fear_mecanumbot](https://github.com/fahradnamazov-ops/fear_mecanumbot) | Dynamics, RL, `ros_draft/`, offline demo |
 
 Both **MuJoCo** and **Gazebo** backends live under `mecanumbot_remote` and expose the same `scan` / `cmd_vel` interface.
 

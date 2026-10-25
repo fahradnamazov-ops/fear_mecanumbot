@@ -10,7 +10,7 @@
 
 ## 1. Abstract
 
-This work implements a continuous internal fear state for a mobile robot engaged in a brick-carry task near a moving person. Proximity risk derived from minimum range and closing speed drives `fear_level`. Near collisions produce large fear spikes; fear then decays slowly when the person moves away. A **Double DQN** agent selects freeze, avoid, catch attention, and task corridors (`task_middle` / `task_north` / `task_south`) using **completion-time cost** (travel + wait) so the robot finishes ASAP while avoiding the human. Offline evaluation: delivery rate 1.00, zero mean near collisions. Live MuJoCo e2e: all four bricks delivered with `policy=rl_dqn`. `catch_attention` is IRL-only (masked in sim). Full method details follow; see also `docs/PROFESSOR_SUBMISSION.md`.
+This report describes a continuous fear state for a mobile robot carrying bricks near a moving person. Minimum range and closing speed set `fear_level`. A near collision spikes fear; fear then decays slowly after the person moves away. A Double DQN selects freeze, avoid, catch attention, or a task lane (`task_middle`, `task_north`, `task_south`). Lane cost is travel time plus a wait estimate from the person’s current position. Offline: delivery rate 1.00 and zero mean near collisions. Live MuJoCo: all four bricks delivered with `policy=rl_dqn`. `catch_attention` is for the real robot and is masked in simulation.
 
 ---
 
@@ -18,7 +18,7 @@ This work implements a continuous internal fear state for a mobile robot engaged
 
 ### 2.1 Motivation
 
-Classical proximity safety reduces robot speed when a human is close and restores full speed when the human leaves the protective envelope. Biological fear and anxiety, by contrast, can leave a residual defensive state after an aversive event. This project asks whether an explicit continuous fear variable can induce that residual behaviour in a robot HRI setting, and whether reinforcement learning can select appropriate defensive and task actions under that state.
+A proximity rule slows the robot while a person is close and returns to full speed as soon as the person leaves. Fear does not drop that fast. This project tests a continuous fear value that stays up for a while after the person moves away, and a reinforcement-learning policy that chooses both defensive actions and the task lane under that value.
 
 ### 2.2 Scenario
 
@@ -26,7 +26,7 @@ Classical proximity safety reduces robot speed when a human is close and restore
 - A person exercises or moves nearby (Fear HRI protocol; calf-level motion is relevant for LIDAR returns).
 - The robot must complete the task while managing proximity risk.
 
-### 2.3 Design decisions (team-aligned)
+### 2.3 Design decisions
 
 | Decision | Choice |
 |----------|--------|
@@ -142,7 +142,7 @@ ROOT
 ```
 
 Local stubs: `fear_mecanumbot/fear_hri_bt.py`  
-ROS draft package: `ros_draft/mecanumbot_fear_hri_behaviour/`
+ROS package: `ros_draft/mecanumbot_fear_hri_behaviour/`
 
 ---
 
@@ -167,8 +167,8 @@ Supporting artefacts:
 - `scripts/` — demos and training entry points  
 - `tests/` — unit tests  
 - `models/` — persisted Q-table  
-- `ros_draft/` — ament package skeleton for `mecanumbot_behaviours`  
-- `sim_draft/` — scenario YAML for `mecanumbot_sim`  
+- `ros_draft/` — ROS 2 behaviour package used on the robot stack
+- `sim_draft/` — scenario YAML and MuJoCo files for `mecanumbot_sim`  
 
 ---
 
@@ -195,7 +195,7 @@ Command: `python scripts/v1_final_demo.py`
 | Cost check | blocked middle expensive; clear middle cheapest |
 | Live MuJoCo e2e | **ALL BRICKS DONE (4/4)**, `policy=rl_dqn` |
 
-See `models/hri_dqn_eval.json` and `docs/PROFESSOR_SUBMISSION.md`.
+See `models/hri_dqn_eval.json` and `evidence/EVIDENCE.txt`.
 
 ---
 
@@ -208,9 +208,9 @@ See `models/hri_dqn_eval.json` and `docs/PROFESSOR_SUBMISSION.md`.
 
 ---
 
-## 8. Status relative to project track
+## 8. What V1.1 contains
 
-**V1.1 deliverable complete** for supervisor review: fear dynamics, Double DQN, completion-time routes, MuJoCo Fear BT integration, tests, and documentation (`PROFESSOR_SUBMISSION.md`).
+Fear dynamics, a Double DQN policy, lane choice by completion time, and the MuJoCo brick-carry run (4/4). The behaviour package is the copy under `ros_draft/`.
 
 ---
 
@@ -232,5 +232,5 @@ Live: `bash scripts/wsl_e2e_dqn.sh` (ROS 2 Humble + MuJoCo lab setup).
 
 | Version | Date | Notes |
 |---------|------|-------|
-| V1 | Aug–Sep 2026 | Local model, Q-learning, drafts, report consolidation |
-| V1.1 | Oct 2026 | Double DQN, completion-time routes, live MuJoCo 4/4, professor pack |
+| V1 | Aug–Sep 2026 | Local model and Q-learning |
+| V1.1 | Oct 2026 | Double DQN, completion-time lanes, MuJoCo 4/4 |

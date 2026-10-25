@@ -1,136 +1,60 @@
 # Fear HRI for Mecanumbot
 
-**Author:** Fahrad Namazov  
-**Affiliation:** MicroLab · Mecanumbot project  
-**Repository:** https://github.com/fahradnamazov-ops/fear_mecanumbot  
+Fahrad Namazov · MicroLab, Eötvös Loránd University  
+https://github.com/fahradnamazov-ops/fear_mecanumbot
 
-Python package for a biologically motivated **fear** state in human–robot interaction (HRI). The robot maintains a continuous internal `fear_level` driven by proximity risk, learns discrete defensive and task actions with **Double DQN**, and exposes draft ROS 2 / simulation artefacts for integration with the Mecanumbot stack.
+The robot carries bricks while a person moves nearby. A continuous `fear_level` (0–100) rises with LIDAR range and closing speed, spikes at 0.25 m or closer, and decays slowly. After the person is far again, fear-modulated speed stays about 0.47 below a proximity-only controller.
 
----
+A Double DQN (numpy MLP) chooses `freeze`, `avoid`, `catch_attention`, or a lane: `task_middle`, `task_north`, `task_south`. Lane cost is travel time plus a blockage cost from the person’s current position. The robot does not predict when the person will leave, and it does not run a fixed wait timer. `catch_attention` is used on the real robot and masked in simulation.
 
-## Research question
+The setup follows the internal-variable idea in Maroto-Gómez, Malfaz, Castro-González, Álvarez Arias, and Salichs, IEEE Access, 2024. This project uses one variable, fear, on the MicroLab Mecanumbot.
 
-Can a continuous internal fear variable produce **residual caution** after a nearby person steps away—behaviour that persists longer than proximity-only safety rules?
+## Results (6 October 2026)
 
-## Scope (V1)
+| Check | Result |
+| --- | --- |
+| Tests | 58 passed |
+| Offline Double DQN | delivery 1.00, near collisions 0.00, about 12.2 steps |
+| Live MuJoCo | 4/4 bricks, `policy=rl_dqn` |
 
-| Element | Specification |
-|---------|----------------|
-| Scenario | Brick-carry task with a person nearby |
-| Trigger | Minimum range and closing speed (LIDAR-style risk); near-collision spike at ≤ 0.25 m. Not IMU pickup. |
-| State | Continuous `fear_level` ∈ [0, 100] with slow decay |
-| Actions | `freeze`, `avoid` (Nav2 Approach retreat), `catch_attention`, `task_middle`, `task_north`, `task_south` |
-| Policy | Double DQN (numpy MLP) on a local 2D Gymnasium environment |
-| Out of scope (V1) | LED signalling; ethologist evaluation; merged PRs into team repositories |
+Log: [evidence/EVIDENCE.txt](evidence/EVIDENCE.txt). Numbers: [models/hri_dqn_eval.json](models/hri_dqn_eval.json). Clip: `video/FearHRI_DoubleDQN_demo_for_professor.mp4`. Method: [docs/TECHNICAL_REPORT.md](docs/TECHNICAL_REPORT.md).
 
-## Features
+## Run offline
 
-- Risk mapping from range and closing speed (`risk.py`)
-- Fear dynamics with spike, rise, and decay (`fear_dynamics.py`)
-- Structured reward terms for near-collision, fear cost, and task progress (`reward.py`)
-- `HriFearEnv` Gymnasium environment and Double DQN agent (`models/hri_dqn.npz`)
-- Residual-caution demonstration versus proximity-only speed
-- ROS 2 behaviour package (`ros_draft/`) matching the October 2026 run: lane choice, brick carry, and the Double DQN policy
-- MuJoCo scenario YAML (`sim_draft/`)
-- Validation log and demo (`evidence/`, `video/`)
+Python 3.10+.
 
-## Documentation
-
-| Document | Description |
-|----------|-------------|
-| [docs/PROFESSOR_SUBMISSION.md](docs/PROFESSOR_SUBMISSION.md) | Concise supervisor handoff (results + how to run) |
-| [docs/TECHNICAL_REPORT.md](docs/TECHNICAL_REPORT.md) | Full method, parameters, results, biology mapping, limitations |
-| [docs/INTEGRATION.md](docs/INTEGRATION.md) | Local vs ROS sensing, team repositories, launch and copy steps |
-| [docs/HOW_TO_RUN.txt](docs/HOW_TO_RUN.txt) | Short reproduce checklist |
-| [docs/EMAIL_DRAFT.txt](docs/EMAIL_DRAFT.txt) | Suggested email to supervisor |
-
-## Repository layout
-
-```text
-fear_mecanumbot/          Core Python package
-tests/                    Unit tests (pytest)
-scripts/                  Demos and training utilities
-models/                   Trained Q-table artefacts
-ros_draft/                ROS 2 Fear HRI behaviour package (October 2026)
-sim_draft/                Simulation scenario and MuJoCo brick-carry runtime
-evidence/                 6 October 2026 validation log
-video/                    MuJoCo Double DQN demo
-docs/                     Technical report and integration guide
-```
-
-## Requirements
-
-- Python 3.10+ recommended
-- Dependencies listed in `requirements.txt` (`gymnasium`, `numpy`, `pytest`)
-
-## Setup
-
-Install dependencies **inside this repository**. A separate Conda or venv used only for other Mecanumbot packages is not sufficient if `pytest` is missing here.
-
-### Windows
-
-```bat
+```bash
 cd fear_mecanumbot
 python -m venv .venv
-.venv\Scripts\activate.bat
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-python scripts\check_setup.py
-pytest -v
-```
-
-### Linux / macOS
-
-```bash
-cd fear_mecanumbot
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python scripts/check_setup.py
-python -m pytest -q
-```
-
-## Running demos
-
-```bash
-# Residual caution (fear-modulated speed vs proximity-only)
-python scripts/residual_fear_demo.py
-
-# Full V1 summary: tests + residual gap + Double DQN vs heuristic episode
-python scripts/v1_final_demo.py
-
-# Train / evaluate Double DQN
-python scripts/train_hri_rl.py
+pytest -q
 python scripts/validate_dqn.py
-python scripts/run_hri_rl.py
-
-# Preview fear update from scan-style range sequences
-python scripts/scan_fear_preview.py
+python scripts/validate_route_cost.py
+python scripts/residual_fear_demo.py
 ```
 
-Results from `v1_final_demo.py` are written to `output/v1_summary.json` (gitignored).
+`output/` is gitignored.
 
-## Activate fear in simulation
+## Simulation
 
-Offline (this PC, no ROS):
+ROS 2 Humble on the lab machine. Steps: [docs/INTEGRATION.md](docs/INTEGRATION.md) and [docs/HOW_TO_RUN.txt](docs/HOW_TO_RUN.txt).
 
 ```bash
-python scripts/sim_fear_activate_demo.py
+bash scripts/wsl_e2e_dqn.sh
 ```
 
-Full MuJoCo / Gazebo (ROS 2 Humble lab machine): see [docs/INTEGRATION.md](docs/INTEGRATION.md).
+## Where the pieces live
 
+| Path | Contents |
+| --- | --- |
+| `fear_mecanumbot/` | Fear dynamics, environment, Double DQN |
+| `ros_draft/` | ROS 2 behaviour package used in the October run |
+| `sim_draft/` | `fear_hri_brick_carry` scenario and the MuJoCo files from that run |
+| `models/` | `hri_dqn.npz` |
 
-## Team repositories (read-only from this project)
+The behaviour package is also on branch `fahrad/fear_hri_behaviour` in [hubaycsenge/mecanumbot_behaviours](https://github.com/hubaycsenge/mecanumbot_behaviours). The scenario YAML matches [Fortuz/mecanumbot_remote](https://github.com/Fortuz/mecanumbot_remote). This repository does not commit to those `main` branches.
 
-Integration drafts in this repository are intended to be **copied** into the team stack when maintainers request it. This project does not modify teammate `main` branches directly.
+## Licence
 
-| Component | Repository |
-|-----------|------------|
-| Simulation package | [Fortuz/mecanumbot_remote](https://github.com/Fortuz/mecanumbot_remote) (`mecanumbot_sim`) |
-| Behaviour trees | [hubaycsenge/mecanumbot_behaviours](https://github.com/hubaycsenge/mecanumbot_behaviours) branch `fahrad/fear_hri_behaviour` |
-| Sensor processing | [hubaycsenge/mecanumbot_sensorprocess_smart](https://github.com/hubaycsenge/mecanumbot_sensorprocess_smart) |
-| Onboard robot packages | [Fortuz/mecanumbot](https://github.com/Fortuz/mecanumbot) |
-
-## Licence and contribution
-
-Work produced for the MicroLab Mecanumbot Fear HRI track. Prefer personal branches and pull requests when contributing to shared team repositories.
+MicroLab Mecanumbot project. Apache-2.0 on the ROS package (`ros_draft/`).

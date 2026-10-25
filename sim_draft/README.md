@@ -1,4 +1,4 @@
-# Simulation scenario draft (synced with Fortuz/mecanumbot_remote)
+# Simulation scenario (same file as Fortuz/mecanumbot_remote)
 
 `fear_hri_brick_carry.yaml` matches the scenario shipped in:
 

@@ -1,9 +1,6 @@
-Demo video (validated)
-======================
-FearHRI_DoubleDQN_demo_for_professor.mp4 / .gif
-- Trained Double DQN, 4/4 brick deliveries in clip
-- Overlay: fear_level + completion-time costs (M/N/S)
-- Regenerated during pre-submit validation
+FearHRI_DoubleDQN_demo_for_professor.mp4
+FearHRI_DoubleDQN_demo_for_professor.gif
 
-Live MuJoCo also reached ALL BRICKS DONE (4/4) the same validation run
-(see EVIDENCE.txt).
+Double DQN policy, 4/4 bricks in the clip.
+Overlay shows fear_level and the middle / north / south costs.
+The same run is logged in evidence/EVIDENCE.txt (4/4 in MuJoCo).
