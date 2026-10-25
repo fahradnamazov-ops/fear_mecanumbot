@@ -1,0 +1,40 @@
+Fear HRI validation evidence
+Generated: 2026-10-06 00:14
+============================
+
+OFFLINE (wsl_validate_before_submit.sh):
+  pytest: 58 passed
+  validate_route_cost: PASS
+  validate_dqn: delivery_rate=1.00 collisions=0.00
+  v1_final_demo: PASS residual_gap=0.47 dqn steps~13
+  professor demo video: DONE delivered=4
+  live imports: DQN policy loads; blocked-middle -> task_north
+  freeze latch: PASS (≤0.55m freeze; no false freeze at 1.19m fear=0)
+  no fear throttle: PASS (task speed paths ignore fear_level)
+
+LIVE MuJoCo e2e:
+[fear_hri_bt_node-1] [INFO] [1791238216.970134123] [mecanumbot.fear_hri_bt_node]: Fear action policy: dqn (RL — task/route/avoid/freeze)
+[fear_hri_bt_node-1] [INFO] [1791238446.963732683] [mecanumbot.fear_hri_bt_node]: Confirmed brick_d on goal mat (4/4 physical)
+[fear_hri_bt_node-1] [INFO] [1791238447.061058745] [mecanumbot.fear_hri_bt_node]: ALL BRICKS DONE — delivered 4
+
+Action histogram (live):
+    836 action=task_north
+    795 action=task_middle
+    509 action=freeze
+    165 action=task_south
+     37 action=avoid
+
+Freeze audit:
+  freeze_ticks_range<=0.55m: 375
+  false_freeze_far_low_fear: 0
+
+LIVE e2e persisted
+2026-10-06T00:14:11+02:00
+[fear_hri_bt_node-1] [INFO] [1791238216.970134123] [mecanumbot.fear_hri_bt_node]: Fear action policy: dqn (RL — task/route/avoid/freeze)
+[fear_hri_bt_node-1] [INFO] [1791238217.212050284] [mecanumbot.fear_hri_bt_node]: SelectFear: RL dqn (completion-time travel+wait features, catch_off)
+[fear_hri_bt_node-1] [INFO] [1791238446.963732683] [mecanumbot.fear_hri_bt_node]: Confirmed brick_d on goal mat (4/4 physical)
+[fear_hri_bt_node-1] [INFO] [1791238447.061058745] [mecanumbot.fear_hri_bt_node]: ALL BRICKS DONE — delivered 4
+
+Freeze audit:
+freeze_ticks_range<=0.55m 375
+false_freeze_far_low_fear 0

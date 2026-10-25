@@ -19,7 +19,7 @@ Can a continuous internal fear variable produce **residual caution** after a nea
 | Scenario | Brick-carry task with a person nearby |
 | Trigger | Minimum range and closing speed (LIDAR-style risk); near-collision spike at ≤ 0.25 m. Not IMU pickup. |
 | State | Continuous `fear_level` ∈ [0, 100] with slow decay |
-| Actions | `freeze`, `avoid` (Nav2 Approach retreat), `catch_attention`, `task` |
+| Actions | `freeze`, `avoid` (Nav2 Approach retreat), `catch_attention`, `task_middle`, `task_north`, `task_south` |
 | Policy | Double DQN (numpy MLP) on a local 2D Gymnasium environment |
 | Out of scope (V1) | LED signalling; ethologist evaluation; merged PRs into team repositories |
 
@@ -30,7 +30,9 @@ Can a continuous internal fear variable produce **residual caution** after a nea
 - Structured reward terms for near-collision, fear cost, and task progress (`reward.py`)
 - `HriFearEnv` Gymnasium environment and Double DQN agent (`models/hri_dqn.npz`)
 - Residual-caution demonstration versus proximity-only speed
-- Draft ROS 2 behaviour package (`ros_draft/`) and MuJoCo scenario YAML (`sim_draft/`)
+- ROS 2 behaviour package (`ros_draft/`) matching the October 2026 run: lane choice, brick carry, and the Double DQN policy
+- MuJoCo scenario YAML (`sim_draft/`)
+- Validation log and demo (`evidence/`, `video/`)
 
 ## Documentation
 
@@ -49,8 +51,10 @@ fear_mecanumbot/          Core Python package
 tests/                    Unit tests (pytest)
 scripts/                  Demos and training utilities
 models/                   Trained Q-table artefacts
-ros_draft/                Draft ROS 2 Fear HRI behaviour package
-sim_draft/                Draft simulation scenario (sim_human_0 patrol)
+ros_draft/                ROS 2 Fear HRI behaviour package (October 2026)
+sim_draft/                Simulation scenario (person between start and goal)
+evidence/                 6 October 2026 validation log
+video/                    MuJoCo Double DQN demo
 docs/                     Technical report and integration guide
 ```
 

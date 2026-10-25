@@ -1,0 +1,63 @@
+{
+  "policy": "double_dqn",
+  "pytest_ok": true,
+  "pytest_line": "58 passed, 1 warning in 3.92s",
+  "pytest_hint": null,
+  "residual_gap": 0.47,
+  "dqn_eval": {
+    "delivery_rate": 1.0,
+    "avg_return": 52.559435113044856,
+    "avg_collisions": 0.0,
+    "avg_steps": 12.15,
+    "freeze": 0,
+    "avoid": 0,
+    "catch_attention": 0,
+    "task_middle": 278,
+    "task_north": 208,
+    "task_south": 0,
+    "task": 486,
+    "policy": "dqn"
+  },
+  "heuristic_episode": {
+    "steps": 38,
+    "delivered": true,
+    "final_fear": 41.2,
+    "near_collisions": 0,
+    "actions": {
+      "freeze": 0,
+      "avoid": 10,
+      "catch_attention": 6,
+      "task_middle": 22,
+      "task_north": 0,
+      "task_south": 0
+    },
+    "task_total": 22
+  },
+  "dqn_episode": {
+    "steps": 13,
+    "delivered": true,
+    "final_fear": 13.0,
+    "near_collisions": 0,
+    "actions": {
+      "freeze": 0,
+      "avoid": 0,
+      "catch_attention": 0,
+      "task_middle": 7,
+      "task_north": 6,
+      "task_south": 0
+    },
+    "task_total": 13
+  },
+  "done": [
+    "fear_level + LIDAR risk + near-collision spike + slow decay",
+    "residual caution vs proximity-only (gap > 0)",
+    "discrete actions + Double DQN policy (routes included)",
+    "Nav2 avoid retreat (Approach)",
+    "BT + ROS bridge notes",
+    "sim scenario YAML"
+  ],
+  "open": [
+    "MuJoCo sim run with Fear HRI tree",
+    "Robot brick run"
+  ]
+}
