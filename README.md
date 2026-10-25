@@ -52,7 +52,7 @@ tests/                    Unit tests (pytest)
 scripts/                  Demos and training utilities
 models/                   Trained Q-table artefacts
 ros_draft/                ROS 2 Fear HRI behaviour package (October 2026)
-sim_draft/                Simulation scenario (person between start and goal)
+sim_draft/                Simulation scenario and MuJoCo brick-carry runtime
 evidence/                 6 October 2026 validation log
 video/                    MuJoCo Double DQN demo
 docs/                     Technical report and integration guide
@@ -127,7 +127,7 @@ Integration drafts in this repository are intended to be **copied** into the tea
 | Component | Repository |
 |-----------|------------|
 | Simulation package | [Fortuz/mecanumbot_remote](https://github.com/Fortuz/mecanumbot_remote) (`mecanumbot_sim`) |
-| Behaviour trees | [hubaycsenge/mecanumbot_behaviours](https://github.com/hubaycsenge/mecanumbot_behaviours) |
+| Behaviour trees | [hubaycsenge/mecanumbot_behaviours](https://github.com/hubaycsenge/mecanumbot_behaviours) branch `fahrad/fear_hri_behaviour` |
 | Sensor processing | [hubaycsenge/mecanumbot_sensorprocess_smart](https://github.com/hubaycsenge/mecanumbot_sensorprocess_smart) |
 | Onboard robot packages | [Fortuz/mecanumbot](https://github.com/Fortuz/mecanumbot) |
 
